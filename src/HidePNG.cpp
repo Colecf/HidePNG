@@ -33,7 +33,7 @@ void writeSecret(char* imageFilename, char* dataFilename) {
   dataFile.seekg(0, ios::beg);
   int filenameLength = strlen(dataFilename);
   //+13 for null terminator, length, type, and CRC
-  char* data = new char[(int)dataSize+filenameLength+13];
+  char* data = new char[dataSize+filenameLength+13];
   writeUint32(data, dataSize+filenameLength+1);
   data[4] = 'x';
   data[5] = 't';
@@ -45,7 +45,7 @@ void writeSecret(char* imageFilename, char* dataFilename) {
   data[8+filenameLength] = '\0';
   dataFile.read(data+8+filenameLength+1, dataSize);
   dataFile.close();
-  out.write(data, (int)dataSize+12);
+  out.write(data, dataSize+filenameLength+13);
   delete[] data;
   
   //add final IEND chunk
