@@ -29,15 +29,21 @@ void writeSecret(char* imageFilename, char* dataFilename) {
 
   //write data to output as ancillery chunk
   ifstream dataFile(dataFilename, ios::in | ios::binary | ios::ate);
-  streampos dataSize = dataFile.tellg();
+  int dataSize = dataFile.tellg();
   dataFile.seekg(0, ios::beg);
-  char* data = new char[(int)dataSize+12]; //+12 for length, type, and CRC
-  writeUint32(data, dataSize);
+  int filenameLength = strlen(dataFilename);
+  //+13 for null terminator, length, type, and CRC
+  char* data = new char[(int)dataSize+filenameLength+13];
+  writeUint32(data, dataSize+filenameLength+1);
   data[4] = 'x';
   data[5] = 't';
   data[6] = 'R';
   data[7] = 'a';
-  dataFile.read(data+8, dataSize);
+  for(int i=0; i<filenameLength; i++) {
+    data[8+i] = dataFilename[i];
+  }
+  data[8+filenameLength] = '\0';
+  dataFile.read(data+8+filenameLength+1, dataSize);
   dataFile.close();
   out.write(data, (int)dataSize+12);
   delete[] data;
@@ -66,10 +72,15 @@ void readSecret(char* imageFilename) {
       char *data = new char[length];
       image.read(data, length);
       image.seekg(4, ios::cur);
-      string filename = "file";
-      filename += filesFound;
+      string filename = "";
+      int i=0;
+      while(data[i] != '\0') {
+        filename += data[i];
+        i++;
+      }
+      i++;
       ofstream outFile(filename, ios::out | ios::binary);
-      outFile.write(data, length);
+      outFile.write(data+i, length-i);
       outFile.close();
       delete[] data;
     } else {
