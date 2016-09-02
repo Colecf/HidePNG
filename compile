@@ -1,0 +1,2 @@
+mkdir -p bin
+g++ -o bin/hidepng src/HidePNG.cpp
