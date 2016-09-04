@@ -15,7 +15,7 @@ uint32_t readUint32(unsigned char *where) {
   return where[3] + (where[2]<<8) + (where[1]<<16) + (where[0]<<24);
 }
 
-void writeSecret(char* imageFilename, char* dataFilename) {
+void writeSecret(string imageFilename, string dataFilename) {
   //write image file into output
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
@@ -31,7 +31,10 @@ void writeSecret(char* imageFilename, char* dataFilename) {
   ifstream dataFile(dataFilename, ios::in | ios::binary | ios::ate);
   int dataSize = dataFile.tellg();
   dataFile.seekg(0, ios::beg);
-  int filenameLength = strlen(dataFilename);
+  if(dataFilename.find_last_of('/') != string::npos) {
+    dataFilename = dataFilename.substr(dataFilename.find_last_of('/')+1);
+  }
+  int filenameLength = dataFilename.length();
   //+13 for null terminator, length, type, and CRC
   char* data = new char[dataSize+filenameLength+13];
   writeUint32(data, dataSize+filenameLength+1);
@@ -55,7 +58,7 @@ void writeSecret(char* imageFilename, char* dataFilename) {
   out.close();
 }
 
-void readSecret(char* imageFilename) {
+void readSecret(string imageFilename) {
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
   image.seekg(8, ios::beg);
@@ -115,6 +118,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  
   if(strcmp(argv[1], "encode") == 0 ||
      strcmp(argv[1], "e") == 0) {
     if(argc >= 4) {
