@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 using namespace std;
 
 //These are big endian
@@ -15,7 +16,7 @@ uint32_t readUint32(unsigned char *where) {
   return where[3] + (where[2]<<8) + (where[1]<<16) + (where[0]<<24);
 }
 
-void writeSecret(string imageFilename, string dataFilename) {
+void writeSecret(string imageFilename, string dataFilename, bool verbose) {
   //write image file into output
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
@@ -58,19 +59,17 @@ void writeSecret(string imageFilename, string dataFilename) {
   out.close();
 }
 
-void readSecret(string imageFilename) {
+void readSecret(string imageFilename, bool verbose) {
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
   image.seekg(8, ios::beg);
   int filesFound = 0;
   unsigned char buf[8];
   while(image.tellg() < imageSize) {
-    cout << "offset " << image.tellg() << " of filesize " << imageSize << endl;
     image.read((char*)buf, 8);
     uint32_t length = readUint32(buf);
     stringstream type;
     type << buf[4] << buf[5] << buf[6] << buf[7];
-    cout << type.str() << endl;
     if(type.str() == "xtRa") {
       char *data = new char[length];
       image.read(data, length);
@@ -82,6 +81,9 @@ void readSecret(string imageFilename) {
         i++;
       }
       i++;
+      if(verbose) {
+        cout << "Extracting " << filename << endl;
+      }
       ofstream outFile(filename, ios::out | ios::binary);
       outFile.write(data+i, length-i);
       outFile.close();
@@ -93,17 +95,28 @@ void readSecret(string imageFilename) {
 }
 
 int main(int argc, char* argv[]) {
-  if(argc < 3 || argc > 4) {
-    cout << "Usage: hidepng <encode | decode | e | d> <image> [data]" << endl;
-    return 1;
+  bool verbose = false;
+  int opt = 0;
+  while((opt = getopt(argc, argv, "v")) != -1) {
+    switch(opt) {
+    case 'v':
+      verbose = true;
+    }
   }
 
-  ifstream image((const char*)argv[2], ios::in | ios::binary | ios::ate);
+  if(optind == argc) {
+    cout << "Usage: hidepng [-v] <image> [data]" << endl;
+    return 1;
+  }
+  string imageFilename = argv[optind++];
+
+  ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
   image.seekg(0, ios::beg);
 
-  std::cout << argv[2] << " has filesize of " << imageSize << endl;
-  unsigned char *buf = new unsigned char[100];
+  if(verbose)
+    std::cout << imageFilename << " has filesize of " << imageSize << endl;
+  unsigned char buf[8];
   image.read((char*)buf, 8);
   image.close();
   if(buf[0] != 0x89 ||
@@ -118,21 +131,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  
-  if(strcmp(argv[1], "encode") == 0 ||
-     strcmp(argv[1], "e") == 0) {
-    if(argc >= 4) {
-      writeSecret(argv[2], argv[3]);
-    } else {
-      cout << "Must have data file argument when encoding" << endl;
-      return 1;
-    }
-  } else if(strcmp(argv[1], "decode") == 0 ||
-            strcmp(argv[1], "d") == 0) {
-    readSecret(argv[2]);
-  } else {
-    cout << "First argument must be encode or decode" << endl;
-    return 1;
+  for(int i=optind; i<argc; i++) {
+    //TODO: make it so this actually saves multiple files
+    writeSecret(imageFilename, argv[i], verbose);
+  }
+
+  if(optind == argc) {
+    readSecret(imageFilename, verbose);
   }
   
   return 0;
