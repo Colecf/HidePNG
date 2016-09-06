@@ -16,14 +16,14 @@ uint32_t readUint32(unsigned char *where) {
   return where[3] + (where[2]<<8) + (where[1]<<16) + (where[0]<<24);
 }
 
-void writeSecret(string imageFilename, string dataFilename, bool verbose) {
+void writeSecret(string imageFilename, string dataFilename, string outfile, bool verbose) {
   //write image file into output
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
   image.seekg(0, ios::beg);
   char* imageData = new char[(int)imageSize - 0xC]; //0xC for the IEND chunk
   image.read(imageData, (int)imageSize - 0xC);
-  ofstream out("encoded.png", ios::out | ios::binary | ios::trunc);
+  ofstream out(outfile, ios::out | ios::binary | ios::trunc);
   out.write(imageData, (int)imageSize - 0xC);
   delete[] imageData;
   image.close();
@@ -96,20 +96,24 @@ void readSecret(string imageFilename, bool verbose) {
 
 int main(int argc, char* argv[]) {
   bool verbose = false;
+  string outFilename = "encoded.png";
   int opt = 0;
-  while((opt = getopt(argc, argv, "v")) != -1) {
+  while((opt = getopt(argc, argv, "vo:")) != -1) {
     switch(opt) {
     case 'v':
       verbose = true;
+    case 'o':
+      outFilename = optarg;
     }
   }
 
   if(optind == argc) {
-    cout << "Usage: hidepng [-v] <image> [data]" << endl;
+    cout << "Usage: hidepng [-v] [-o outfilename] <image> [data]" << endl;
     return 1;
   }
   string imageFilename = argv[optind++];
-
+  
+  
   ifstream image(imageFilename, ios::in | ios::binary | ios::ate);
   streampos imageSize = image.tellg();
   image.seekg(0, ios::beg);
@@ -133,7 +137,7 @@ int main(int argc, char* argv[]) {
 
   for(int i=optind; i<argc; i++) {
     //TODO: make it so this actually saves multiple files
-    writeSecret(imageFilename, argv[i], verbose);
+    writeSecret(imageFilename, argv[i], outFilename, verbose);
   }
 
   if(optind == argc) {
