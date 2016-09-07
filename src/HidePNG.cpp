@@ -23,10 +23,10 @@ void writeSecret(string imageFilename, string dataFilename, string outfile, bool
   image.seekg(0, ios::beg);
   char* imageData = new char[(int)imageSize - 0xC]; //0xC for the IEND chunk
   image.read(imageData, (int)imageSize - 0xC);
+  image.close();
   ofstream out(outfile, ios::out | ios::binary | ios::trunc);
   out.write(imageData, (int)imageSize - 0xC);
   delete[] imageData;
-  image.close();
 
   //write data to output as ancillery chunk
   ifstream dataFile(dataFilename, ios::in | ios::binary | ios::ate);
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
   }
 
   if(optind == argc) {
-    cout << "Usage: hidepng [-v] [-o outfilename] <image> [data]" << endl;
+    cout << "Usage: hidepng [-v] [-o outfilename] <image> [data...]" << endl;
     return 1;
   }
   string imageFilename = argv[optind++];
@@ -135,9 +135,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  
   for(int i=optind; i<argc; i++) {
-    //TODO: make it so this actually saves multiple files
-    writeSecret(imageFilename, argv[i], outFilename, verbose);
+    if(i == optind) {
+      writeSecret(imageFilename, argv[i], outFilename, verbose);
+    } else {
+      writeSecret(outFilename, argv[i], outFilename, verbose);
+    }
   }
 
   if(optind == argc) {
