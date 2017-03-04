@@ -102,8 +102,10 @@ int main(int argc, char* argv[]) {
     switch(opt) {
     case 'v':
       verbose = true;
+      break;
     case 'o':
       outFilename = optarg;
+      break;
     }
   }
 
